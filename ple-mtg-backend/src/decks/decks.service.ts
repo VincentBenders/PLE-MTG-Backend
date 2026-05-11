@@ -20,15 +20,16 @@ export class DecksService {
     return this.deckRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} deck`;
+  async findOne(id: string) {
+    return await this.deckRepository.findOne({ where: { id } });
   }
 
-  update(id: number, updateDeckDto: UpdateDeckDto) {
+  update(id: string, updateDeckDto: UpdateDeckDto) {
     return `This action updates a #${id} deck`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} deck`;
+  async remove(id: string) {
+    const deck = this.deckRepository.delete(id);
+    return await deck;
   }
 }

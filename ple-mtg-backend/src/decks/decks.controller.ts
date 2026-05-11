@@ -27,16 +27,16 @@ export class DecksController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.decksService.findOne(+id);
+    return this.decksService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateDeckDto: UpdateDeckDto) {
-    return this.decksService.update(+id, updateDeckDto);
+    return this.decksService.update(id, updateDeckDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.decksService.remove(+id);
+    return this.decksService.remove(id);
   }
 }

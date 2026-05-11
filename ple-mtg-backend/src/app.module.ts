@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DecksModule } from './decks/decks.module';
 import { Deck } from './decks/entities/deck.entity';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { Deck } from './decks/entities/deck.entity';
       }),
     }),
     DecksModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
