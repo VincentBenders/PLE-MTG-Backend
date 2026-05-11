@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { DecksService } from './decks.service';
 import { CreateDeckDto } from './dto/create-deck.dto';
 import { UpdateDeckDto } from './dto/update-deck.dto';
@@ -8,7 +16,7 @@ export class DecksController {
   constructor(private readonly decksService: DecksService) {}
 
   @Post()
-  create(@Body() createDeckDto: CreateDeckDto) {
+  createDeck(@Body() createDeckDto: CreateDeckDto) {
     return this.decksService.create(createDeckDto);
   }
 
