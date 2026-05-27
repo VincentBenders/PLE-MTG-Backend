@@ -11,6 +11,49 @@ export class DecksService {
     @InjectRepository(Deck)
     private deckRepository: Repository<Deck>,
   ) {}
+
+  async getFavoriteDecks() {
+    return this.deckRepository.find({
+      where: {
+        favorite: true,
+        // userId: currentUser.id,
+      },
+    });
+  }
+
+  async getArchidektDeck(url: string) {
+    try {
+      const deck = await fetch(
+        `https://backend.commanderspellbook.com/card-list-from-url?url=${url}`,
+        {
+          headers: {
+            accept: 'application/json',
+          },
+        },
+      );
+      return deck.json();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async checkInfiniteCombos() {
+    try {
+      const deckCombos = await fetch(
+        `https://backend.commanderspellbook.com/find-my-combos?count=false`,
+        {
+          headers: {
+            accept: 'application/json',
+          },
+          // body: {},
+        },
+      );
+      return await deckCombos.json();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   async create(createDeckDto: CreateDeckDto) {
     const deck = this.deckRepository.create(createDeckDto);
     return await this.deckRepository.save(deck);
@@ -21,7 +64,8 @@ export class DecksService {
   }
 
   async findOne(id: string) {
-    return await this.deckRepository.findOne({ where: { id } });
+    return this.checkInfiniteCombos();
+    // return await this.deckRepository.findOne({ where: { id } });
   }
 
   update(id: string, updateDeckDto: UpdateDeckDto) {

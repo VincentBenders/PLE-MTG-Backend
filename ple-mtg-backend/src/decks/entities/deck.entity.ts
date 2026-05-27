@@ -3,18 +3,31 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  ForeignKey,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+
+type DeckEntry = {
+  cardId: string;
+  cardName: string;
+
+  quantity: number;
+
+  highlighted?: boolean;
+
+  role?: string;
+
+  notes?: string;
+};
 
 @Entity({ name: 'decks' })
 export class Deck {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // @ForeignKey('uuid')
-  // user_id: string;
+  // future:
+  // @Column()
+  // userId: string;
 
   @Column()
   name: string;
@@ -25,8 +38,18 @@ export class Deck {
   @Column()
   commander: string;
 
-  @Column({ type: 'text' })
-  decklist: string;
+  @Column({
+    type: 'jsonb',
+    default: () => "'[]'",
+  })
+  decklist: DeckEntry[];
+
+  @Column({
+    type: 'text',
+    array: true,
+    default: () => "'{}'",
+  })
+  tags: string[];
 
   @Column({ default: 0 })
   games: number;
@@ -36,9 +59,6 @@ export class Deck {
 
   @Column({ default: 0 })
   wins: number;
-
-  @Column('text', { array: true, default: [] })
-  tags: string[];
 
   @Column()
   bracket: number;

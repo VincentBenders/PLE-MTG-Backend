@@ -20,7 +20,7 @@ export class DeckResponseDto {
   @Expose()
   tags: string[];
   @Expose()
-  bracket: string;
+  bracket: number;
   @Expose()
   createdAt: Date;
   @Expose()

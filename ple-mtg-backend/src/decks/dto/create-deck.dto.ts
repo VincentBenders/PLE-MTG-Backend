@@ -1,15 +1,14 @@
 export class CreateDeckDto {
-  // user_id: string;
-  commander: string;
   name: string;
-  decklist: string;
-  favorite: boolean;
-  games: number;
-  draws: number;
-  wins: number;
-  tags: string[];
+  commander: string;
+  decklist: {
+    cardId: string;
+    cardName: string;
+    quantity: number;
+    highlighted?: boolean;
+    role?: string;
+    notes?: string;
+  }[];
+  tags?: string[];
   bracket: number;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date;
 }
