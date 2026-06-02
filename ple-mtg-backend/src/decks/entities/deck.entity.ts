@@ -7,27 +7,26 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-type DeckEntry = {
-  cardId: string;
+// 1. Define the shape of a single card inside the database JSONB block
+type CardEntry = {
+  cardId?: string;
   cardName: string;
-
   quantity: number;
-
   highlighted?: boolean;
-
   role?: string;
-
   notes?: string;
+};
+
+// 2. Define the new nested database structure shape
+type NestedDeckStructure = {
+  main: CardEntry[];
+  commanders: CardEntry[];
 };
 
 @Entity({ name: 'decks' })
 export class Deck {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  // future:
-  // @Column()
-  // userId: string;
 
   @Column()
   name: string;
@@ -38,11 +37,12 @@ export class Deck {
   @Column()
   commander: string;
 
+  // 🔄 SWAPPED 'decklist' FOR THE NESTED 'deck' JSONB PROPERTY
   @Column({
     type: 'jsonb',
-    default: () => "'[]'",
+    default: () => '\'{"main": [], "commanders": []}\'',
   })
-  decklist: DeckEntry[];
+  deck: NestedDeckStructure;
 
   @Column({
     type: 'text',

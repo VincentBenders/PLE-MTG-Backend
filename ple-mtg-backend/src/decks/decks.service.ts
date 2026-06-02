@@ -21,22 +21,6 @@ export class DecksService {
     });
   }
 
-  async getArchidektDeck(url: string) {
-    try {
-      const deck = await fetch(
-        `https://backend.commanderspellbook.com/card-list-from-url?url=${url}`,
-        {
-          headers: {
-            accept: 'application/json',
-          },
-        },
-      );
-      return deck.json();
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
   async checkInfiniteCombos() {
     try {
       const deckCombos = await fetch(
@@ -64,8 +48,8 @@ export class DecksService {
   }
 
   async findOne(id: string) {
-    return this.checkInfiniteCombos();
-    // return await this.deckRepository.findOne({ where: { id } });
+    // return this.checkInfiniteCombos();
+    return await this.deckRepository.findOne({ where: { id } });
   }
 
   update(id: string, updateDeckDto: UpdateDeckDto) {
