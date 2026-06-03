@@ -14,6 +14,7 @@ export class CreateDeckDto {
     ];
     commanders: [];
   };
+  infiniteCombos?: {}
   tags?: string[];
   bracket: number;
 }

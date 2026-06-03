@@ -21,7 +21,7 @@ export class DecksService {
     });
   }
 
-  async checkInfiniteCombos() {
+  async checkInfiniteCombos(deck) {
     try {
       const deckCombos = await fetch(
         `https://backend.commanderspellbook.com/find-my-combos?count=false`,
@@ -29,17 +29,21 @@ export class DecksService {
           headers: {
             accept: 'application/json',
           },
-          // body: {},
+            body: JSON.stringify({deck})
         },
       );
+      // if (deckCombos.)
       return await deckCombos.json();
     } catch (error) {
       console.error(error);
+
     }
   }
 
   async create(createDeckDto: CreateDeckDto) {
     const deck = this.deckRepository.create(createDeckDto);
+    const infiniteCombos = this.checkInfiniteCombos(deck.deck);
+    // deck.infiniteCombos = infiniteCombos;
     return await this.deckRepository.save(deck);
   }
 

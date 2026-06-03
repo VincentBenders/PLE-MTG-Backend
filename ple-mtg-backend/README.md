@@ -23,15 +23,26 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
+This is the backend of the MTG Commanders context app. 
 ## Project setup
 
+1. make sure [docker](https://www.docker.com/products/docker-desktop/) is installed on your development device
+
+2. create a db with the docker compose
+```bash
+$ docker compose up
+```
+3. install dependencies
 ```bash
 $ npm install
 ```
 
 ## Compile and run the project
+
+make sure docker is running
+```bash
+$ docker compose up
+```
 
 ```bash
 # development

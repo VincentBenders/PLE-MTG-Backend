@@ -7,7 +7,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-// 1. Define the shape of a single card inside the database JSONB block
 type CardEntry = {
   cardId?: string;
   cardName: string;
@@ -17,7 +16,6 @@ type CardEntry = {
   notes?: string;
 };
 
-// 2. Define the new nested database structure shape
 type NestedDeckStructure = {
   main: CardEntry[];
   commanders: CardEntry[];
@@ -37,7 +35,6 @@ export class Deck {
   @Column()
   commander: string;
 
-  // 🔄 SWAPPED 'decklist' FOR THE NESTED 'deck' JSONB PROPERTY
   @Column({
     type: 'jsonb',
     default: () => '\'{"main": [], "commanders": []}\'',
@@ -50,6 +47,11 @@ export class Deck {
     default: () => "'{}'",
   })
   tags: string[];
+
+  @Column({
+      type: 'jsonb',
+  })
+  infiniteCombos:  {};
 
   @Column({ default: 0 })
   games: number;
