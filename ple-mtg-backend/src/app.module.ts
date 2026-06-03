@@ -7,6 +7,7 @@ import { DecksModule } from './decks/decks.module';
 import { Deck } from './decks/entities/deck.entity';
 import { UserModule } from './users/user.module';
 import { User } from './users/entities/user.entity';
+import { CardsModule } from './cards/cards.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { User } from './users/entities/user.entity';
     }),
     DecksModule,
     UserModule,
+    CardsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

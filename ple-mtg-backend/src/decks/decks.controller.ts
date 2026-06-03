@@ -30,7 +30,7 @@ export class DecksController {
     return this.decksService.findOne(id);
   }
 
-  @Post('combos/:id')
+  @Get('combos/:id')
   checkInfiniteCombos(@Param('id') id: string) {
     return this.decksService.checkInfiniteCombos(id);
   }

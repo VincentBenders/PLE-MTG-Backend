@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { CreateDeckDto } from './dto/create-deck.dto';
-import { UpdateDeckDto } from './dto/update-deck.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Deck } from './entities/deck.entity';
+import {Injectable} from '@nestjs/common';
+import {CreateDeckDto} from './dto/create-deck.dto';
+import {UpdateDeckDto} from './dto/update-deck.dto';
+import {InjectRepository} from '@nestjs/typeorm';
+import {Repository} from 'typeorm';
+import {Deck} from './entities/deck.entity';
 
 @Injectable()
 export class DecksService {
@@ -22,7 +22,6 @@ export class DecksService {
   }
 
   async checkInfiniteCombos(deck) {
-    console.log("test")
     try {
       const deckCombos = await fetch(
         `https://backend.commanderspellbook.com/find-my-combos?count=false`,
@@ -30,11 +29,14 @@ export class DecksService {
           method: 'POST',
           headers: {
             accept: 'application/json',
+            'Content-Type': 'application/json',
           },
-            body: JSON.stringify({deck})
+            body: JSON.stringify(deck)
         },
       );
-      return await deckCombos.json();
+      const data = await deckCombos.json();
+      return data.results.included;
+
     } catch (error) {
       console.error(error);
 
@@ -43,8 +45,9 @@ export class DecksService {
 
   async create(createDeckDto: CreateDeckDto) {
     const deck = this.deckRepository.create(createDeckDto);
-    const infiniteCombos = this.checkInfiniteCombos(deck.deck);
-    // deck.infiniteCombos = infiniteCombos;
+    console.log(deck.deck);
+    deck.infiniteCombos = await this.checkInfiniteCombos(deck.deck);
+    console.log(deck.infiniteCombos);
     return await this.deckRepository.save(deck);
   }
 

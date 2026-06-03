@@ -5,7 +5,7 @@ export class CreateDeckDto {
     main: [
       {
         cardId?: string;
-        cardName: string;
+        card: string;
         quantity: number;
         highlighted?: boolean;
         role?: string;

@@ -9,7 +9,7 @@ import {
 
 type CardEntry = {
   cardId?: string;
-  cardName: string;
+  card: string;
   quantity: number;
   highlighted?: boolean;
   role?: string;

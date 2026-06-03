@@ -10,13 +10,7 @@ export class DeckResponseDto {
   @Expose()
   decklist: string;
   @Expose()
-  favorite: boolean;
-  @Expose()
-  games: number;
-  @Expose()
-  draws: number;
-  @Expose()
-  wins: number;
+  infiniteCombos: any;
   @Expose()
   tags: string[];
   @Expose()
