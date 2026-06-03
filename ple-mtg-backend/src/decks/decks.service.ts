@@ -22,17 +22,18 @@ export class DecksService {
   }
 
   async checkInfiniteCombos(deck) {
+    console.log("test")
     try {
       const deckCombos = await fetch(
         `https://backend.commanderspellbook.com/find-my-combos?count=false`,
         {
+          method: 'POST',
           headers: {
             accept: 'application/json',
           },
             body: JSON.stringify({deck})
         },
       );
-      // if (deckCombos.)
       return await deckCombos.json();
     } catch (error) {
       console.error(error);

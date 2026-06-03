@@ -30,6 +30,11 @@ export class DecksController {
     return this.decksService.findOne(id);
   }
 
+  @Post('combos/:id')
+  checkInfiniteCombos(@Param('id') id: string) {
+    return this.decksService.checkInfiniteCombos(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateDeckDto: UpdateDeckDto) {
     return this.decksService.update(id, updateDeckDto);

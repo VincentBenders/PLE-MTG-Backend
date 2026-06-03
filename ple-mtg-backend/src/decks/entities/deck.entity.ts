@@ -50,6 +50,7 @@ export class Deck {
 
   @Column({
       type: 'jsonb',
+      nullable: true,
   })
   infiniteCombos:  {};
 
