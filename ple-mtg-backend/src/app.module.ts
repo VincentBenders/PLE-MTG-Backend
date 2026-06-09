@@ -8,6 +8,7 @@ import { Deck } from './decks/entities/deck.entity';
 import { UserModule } from './users/user.module';
 import { User } from './users/entities/user.entity';
 import { CardsModule } from './cards/cards.module';
+import {Card} from "./cards/entities/card.entity";
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { CardsModule } from './cards/cards.module';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
-        entities: [Deck, User],
+        entities: [Deck, User, Card],
         synchronize: true,
       }),
     }),

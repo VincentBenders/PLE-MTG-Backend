@@ -1,40 +1,59 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCardDto } from './dto/create-card.dto';
-import { UpdateCardDto } from './dto/update-card.dto';
+import {Injectable, NotFoundException} from '@nestjs/common';
 import {Card} from "./entities/card.entity";
+import {InjectRepository} from "@nestjs/typeorm";
+import {Repository} from "typeorm";
+import {GetCardsFilterDto} from "./dto/get-cards.dto";
 
 @Injectable()
 export class CardsService {
+  constructor(
+      @InjectRepository(Card)
+      private readonly cardRepository: Repository<Card>,
+  ) {}
 
-  async findCard(card) {
-   if (!card) {
-     try {
+  async getCards(filterDto: GetCardsFilterDto) {
+    const { name, setCode, rarity, page = 1, limit = 20 } = filterDto;
 
-     } catch (error) {
+    const query = this.cardRepository.createQueryBuilder('card');
 
-     }
-   } else {
-     return;
-   }
+    if (name) {
+      query.andWhere('LOWER(card.name) LIKE LOWER(:name)', { name: `%${name}%` });
+    }
+
+    if (setCode) {
+      query.andWhere('card.setCode = :setCode', { setCode });
+    }
+
+    if (rarity) {
+      query.andWhere('card.rarity = :rarity', { rarity });
+    }
+
+    const skip = (page - 1) * limit;
+    query.skip(skip).take(limit);
+
+    query.orderBy('card.name', 'ASC');
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      meta: {
+        totalItems: total,
+        itemCount: data.length,
+        itemsPerPage: limit,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+      },
+    };
   }
 
-  create(createCardDto: CreateCardDto) {
-    return 'This action adds a new card';
-  }
+  async findOne(name: string): Promise<Card> {
+    const card = await this.cardRepository.findOne({ where: { name } });
 
-  findAll() {
-    return `This action returns all cards`;
-  }
+    if (!card) {
+      throw new NotFoundException(`Card with UUID ${name} not found`);
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} card`;
-  }
-
-  update(id: number, updateCardDto: UpdateCardDto) {
-    return `This action updates a #${id} card`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} card`;
+    return card;
   }
 }
