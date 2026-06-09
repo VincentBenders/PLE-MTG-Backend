@@ -10,12 +10,13 @@ import {
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { LoginDto } from "./dto/login.dto";
 
 @Controller('user')
 export class UserController {
   constructor(private readonly usersService: UserService) {}
 
-  @Post()
+  @Post('create')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -25,9 +26,9 @@ export class UserController {
     return this.usersService.findAll();
   }
 
-  @Get(':email')
-  findOne(@Param('email') email: string) {
-    return this.usersService.findOne(email);
+  @Post('login')
+  findLogin(@Body() loginDto: LoginDto) {
+    return this.usersService.findLogin(loginDto);
   }
 
   @Patch(':id')
