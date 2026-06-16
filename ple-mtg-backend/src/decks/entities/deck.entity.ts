@@ -19,6 +19,7 @@ type CardEntry = {
 type NestedDeckStructure = {
   main: CardEntry[];
   commanders: CardEntry[];
+  sideboard?: CardEntry[];
 };
 
 @Entity({ name: 'decks' })
@@ -54,18 +55,26 @@ export class Deck {
   })
   infiniteCombos:  {};
 
-  @Column({ default: 0 })
-  games: number;
-
-  @Column({ default: 0 })
-  draws: number;
-
-  @Column({ default: 0 })
-  wins: number;
-
-  @Column()
+  @Column({ type: 'int', default: 1 })
   bracket: number;
 
+  @Column({ type: 'boolean', default: false })
+  isManualBracketOverride: boolean;
+
+  @Column({ type: 'decimal', precision: 3, scale: 2, default: 0.00 })
+  averageCmc: number;
+
+  @Column({ type: 'int', default: 0 })
+  gamechangerCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  stapleCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  tutorCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  fastManaCount: number; // Cached count of cards tagged 'fast-mana'
   @CreateDateColumn()
   createdAt: Date;
 

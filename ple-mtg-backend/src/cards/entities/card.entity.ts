@@ -25,4 +25,18 @@ export class Card {
 
     @Column({ type: 'simple-array', nullable: true, name: 'colorIdentity' })
     colorIdentity: string[];
+
+    @Column({ type: 'simple-array', nullable: true })
+    tags: string[];
+
+    @Column({
+        default: false,
+    })
+    isGamechanger: boolean;
+
+    @Column({
+        default: false,
+    })
+    isStaple: boolean;
+
 }

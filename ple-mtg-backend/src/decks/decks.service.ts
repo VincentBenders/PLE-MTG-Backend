@@ -1,10 +1,12 @@
-// src/decks/decks.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDeckDto } from './dto/create-deck.dto';
 import { UpdateDeckDto } from './dto/update-deck.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Deck } from './entities/deck.entity';
+import { CardsService} from "../cards/cards.service";
+import {Card} from "../cards/entities/card.entity";
+
 
 @Injectable()
 export class DecksService {
@@ -12,6 +14,43 @@ export class DecksService {
       @InjectRepository(Deck)
       private readonly deckRepository: Repository<Deck>,
   ) {}
+
+  async checkCardsInDeck(Deck: Deck) {
+    const deckstats = {
+      tags: {},
+      gamechangers: {},
+      fastmana: {},
+      combos: {},
+      consistency: {},
+      synergy: {},
+      salt: {}
+    }
+
+        Deck.deck.commanders.forEach((commander) => {
+          // CardsService.findOne(commander.card)
+          console.log(commander.card)
+        })
+
+    // check commanders first
+
+    //check deck after
+
+
+    // check bracket
+
+      //bracket 2
+      //if infinite combo's = 0 && gamechangers = 0 && tutors =< 3
+
+      //bracket 3
+      //if infinite combo's != 0 || gamechangers <= 3 ||
+
+      //bracket 4
+      //if
+
+      //bracket 5
+      //if banned cards
+
+  }
 
   async create(createDeckDto: CreateDeckDto): Promise<Deck> {
     const deck = this.deckRepository.create(createDeckDto);

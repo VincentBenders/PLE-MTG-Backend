@@ -51,7 +51,7 @@ export class CardsService {
     const card = await this.cardRepository.findOne({ where: { name } });
 
     if (!card) {
-      throw new NotFoundException(`Card with UUID ${name} not found`);
+      throw new NotFoundException(`Card with name: ${name} not found`);
     }
 
     return card;
