@@ -151,10 +151,23 @@ async function importAtomic() {
         if (textLower.includes('ninjutsu')) generatedTags.push('Ninjutsu');
         if (textLower.includes('defender')) generatedTags.push('Defender');
         if (typeString.includes('equipment') || typeString.includes('aura')) generatedTags.push('Voltron');
-
-        //tribal check
-        if (card.subtypes && Array.isArray(card.subtypes)) {
-            generatedTags.push(...card.subtypes);
+        if (
+            textLower.includes('landfall') ||
+            textLower.includes('you may play an additional land') ||
+            textLower.includes('return target land card from your graveyard') ||
+            (textLower.includes('whenever a land') && textLower.includes('dies')) ||
+            (typeString.includes('land') && textLower.length > 0 && !textLower.includes('add {'))
+        ) {
+            generatedTags.push('Lands Matter');
+        }
+        if (
+            textLower.includes('target land becomes a creature') ||
+            textLower.includes('awaken') || // The mechanic that turns lands into elementals
+            (typeString.includes('elemental') && (typeString.includes('creature') || textLower.includes('elemental'))) ||
+            textLower.includes('earthbending') ||
+            textLower.includes('lands you control become')
+        ) {
+            generatedTags.push('Earthbending');
         }
 
         const finalTagsString = generatedTags.length > 0

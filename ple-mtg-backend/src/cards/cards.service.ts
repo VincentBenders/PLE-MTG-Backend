@@ -1,7 +1,7 @@
 import {Injectable, NotFoundException} from '@nestjs/common';
 import {Card} from "./entities/card.entity";
 import {InjectRepository} from "@nestjs/typeorm";
-import {Repository} from "typeorm";
+import {In, Repository} from "typeorm";
 import {GetCardsFilterDto} from "./dto/get-cards.dto";
 
 @Injectable()
@@ -55,5 +55,11 @@ export class CardsService {
     }
 
     return card;
+  }
+
+  async findByNames(names: string[]): Promise<Card[]> {
+    return await this.cardRepository.findBy({
+      name: In(names),
+    });
   }
 }

@@ -33,8 +33,6 @@ export class Deck {
   @Column({ default: false })
   favorite: boolean;
 
-  @Column()
-  commander: string;
 
   @Column({
     type: 'jsonb',
@@ -74,7 +72,7 @@ export class Deck {
   tutorCount: number;
 
   @Column({ type: 'int', default: 0 })
-  fastManaCount: number; // Cached count of cards tagged 'fast-mana'
+  fastManaCount: number;
   @CreateDateColumn()
   createdAt: Date;
 

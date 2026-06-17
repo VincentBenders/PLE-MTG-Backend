@@ -10,6 +10,7 @@ import {
 import { DecksService } from './decks.service';
 import { CreateDeckDto } from './dto/create-deck.dto';
 import { UpdateDeckDto } from './dto/update-deck.dto';
+import {ComparePodDto} from "./dto/compare-pod.dto";
 
 @Controller('decks')
 export class DecksController {
@@ -44,5 +45,10 @@ export class DecksController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.decksService.remove(id);
+  }
+
+  @Post('compare')
+  async comparePod(@Body() comparePodDto: ComparePodDto) {
+    return this.decksService.comparePod(comparePodDto);
   }
 }

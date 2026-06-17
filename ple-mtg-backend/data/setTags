@@ -1,0 +1,60 @@
+Voltron
+Control
+Aggro
+Stax
+Extra Turn
+Extra Combat
++1/+1 Counters
+Tokens
+Lifegain
+Aristocrat
+Sacrifice
+Cantrip
+Reanimator
+Ramp
+Treasure
+Clue
+Burn
+Spell Copy
+Landfall
+Mill
+Wheel
+Draw
+Infect
+Cascade
+Ninjustu
+Defender
+
+UPDATE cards
+SET tags = CONCAT_WS(',',
+    -- Mechanics / Subtypes
+    CASE WHEN text ILIKE '%flying%' OR text ILIKE '%trample%' OR text ILIKE '%haste%' THEN 'Aggro' END,
+    CASE WHEN text ILIKE '%counter target spell%' OR text ILIKE '%return target%to its owner''s hand%' THEN 'Control' END,
+    CASE WHEN text ILIKE '%spells cost % more%' OR text ILIKE '%don''t untap during%untap step%' THEN 'Stax' END,
+    CASE WHEN text ILIKE '%take an extra turn%' THEN 'Extra Turn' END,
+    CASE WHEN text ILIKE '%after this phase%additional%combat phase%' THEN 'Extra Combat' END,
+    CASE WHEN text ILIKE '%put a +1/+1 counter%' OR text ILIKE '%put a number of +1/+1 counters%' THEN '+1/+1 Counters' END,
+    CASE WHEN text ILIKE '%create%token%' THEN 'Tokens' END,
+    CASE WHEN text ILIKE '%gain%life%' THEN 'Lifegain' END,
+    CASE WHEN text ILIKE '%whenever another creature dies%' THEN 'Aristocrat' END,
+    CASE WHEN text ILIKE '%sacrifice a%' OR text ILIKE '%as an additional cost to cast this spell, sacrifice%' THEN 'Sacrifice' END,
+    CASE WHEN text ILIKE 'Draw a card.' OR text ILIKE '%, draw a card.' THEN 'Cantrip' END,
+    CASE WHEN text ILIKE '%return target creature card from your graveyard to the battlefield%' THEN 'Reanimator' END,
+    CASE WHEN text ILIKE '%search your library for a land card%' OR text ILIKE '%search your library for up to two land cards%' THEN 'Ramp' END,
+    CASE WHEN text ILIKE '%create%Treasure token%' THEN 'Treasure' END,
+    CASE WHEN text ILIKE '%create%Clue token%' THEN 'Clue' END,
+    CASE WHEN text ILIKE '%deals % damage to%' AND (type ILIKE '%Instant%' OR type ILIKE '%Sorcery%') THEN 'Burn' END,
+    CASE WHEN text ILIKE '%copy target instant or sorcery%' OR text ILIKE '%copy that spell%' THEN 'Spell Copy' END,
+    CASE WHEN text ILIKE '%whenever a land enters the battlefield under your control%' THEN 'Landfall' END,
+    CASE WHEN text ILIKE '%mill%card%' OR text ILIKE '%target player puts the top%cards of their library into their graveyard%' THEN 'Mill' END,
+    CASE WHEN text ILIKE '%each player discards their hand, then draws%' OR text ILIKE '%discard your hand, then draw%' THEN 'Wheel' END,
+    CASE WHEN text ILIKE '%draw a card%' OR text ILIKE '%draws % cards%' THEN 'Draw' END,
+    CASE WHEN text ILIKE '%poison counter%' OR text ILIKE '%infect%' THEN 'Infect' END,
+    CASE WHEN text ILIKE '%cascade%' THEN 'Cascade' END,
+    CASE WHEN text ILIKE '%ninjutsu%' THEN 'Ninjutsu' END,
+    CASE WHEN text ILIKE '%defender%' THEN 'Defender' END,
+
+    -- Voltron Strategy (Relies heavily on equipment/auras attached to your own creatures)
+    CASE WHEN type ILIKE '%Equipment%' OR type ILIKE '%Aura%' OR text ILIKE '%enchanted creature gets%' OR text ILIKE '%equipped creature gets%' THEN 'Voltron' END
+);
+
