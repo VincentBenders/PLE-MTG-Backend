@@ -73,6 +73,7 @@ export class Deck {
 
   @Column({ type: 'int', default: 0 })
   fastManaCount: number;
+  
   @CreateDateColumn()
   createdAt: Date;
 

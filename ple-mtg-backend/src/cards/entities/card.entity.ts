@@ -8,6 +8,10 @@ export class Card {
     @Column({ type: 'text', nullable: true })
     text: string;
 
+    // Added to capture the back face of transforming/modal double-faced cards
+    @Column({ type: 'text', nullable: true })
+    flip_text: string;
+
     @Column({ type: 'varchar', nullable: true })
     manaCost: string;
 
@@ -39,4 +43,23 @@ export class Card {
     })
     isStaple: boolean;
 
+    @Column({
+        default: false,
+    })
+    isTutor: boolean;
+
+    @Column({
+        default: false,
+    })
+    isCommanderLegal: boolean;
+
+    @Column({
+        default: false,
+    })
+    isCommanderBanned: boolean;
+
+    @Column({
+        default: false,
+    })
+    isFastMana: boolean;
 }

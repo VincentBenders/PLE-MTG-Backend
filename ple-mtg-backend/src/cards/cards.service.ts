@@ -47,6 +47,9 @@ export class CardsService {
     };
   }
 
+
+
+
   async findOne(name: string): Promise<Card> {
     const card = await this.cardRepository.findOne({ where: { name } });
 
@@ -58,8 +61,10 @@ export class CardsService {
   }
 
   async findByNames(names: string[]): Promise<Card[]> {
-    return await this.cardRepository.findBy({
-      name: In(names),
+    return await this.cardRepository.find({
+      where: {
+        name: In(names),
+      },
     });
   }
 }

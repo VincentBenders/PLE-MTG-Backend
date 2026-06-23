@@ -1,393 +1,539 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateDeckDto } from './dto/create-deck.dto';
-import { UpdateDeckDto } from './dto/update-deck.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, In, Repository } from 'typeorm';
-import { Deck } from './entities/deck.entity';
-import { Card } from "../cards/entities/card.entity";
-import { ComparePodDto } from "./dto/compare-pod.dto";
-import { CardsService } from '../cards/cards.service';
+import {Injectable, NotFoundException} from '@nestjs/common';
+import {CreateDeckDto} from './dto/create-deck.dto';
+import {UpdateDeckDto} from './dto/update-deck.dto';
+import {InjectRepository} from '@nestjs/typeorm';
+import {ILike, In, Repository} from 'typeorm';
+import {Deck} from './entities/deck.entity';
+import {Card} from "../cards/entities/card.entity";
+import {ComparePodDto} from "./dto/compare-pod.dto";
+import {CardsService} from '../cards/cards.service';
 
 type CardEntry = {
-  cardId?: string;
-  card: string;
-  quantity: number;
-  highlighted?: boolean;
-  role?: string;
-  notes?: string;
+    cardId?: string;
+    card: string;
+    quantity: number;
+    highlighted?: boolean;
+    role?: string;
+    notes?: string;
 };
 
 type NestedDeckStructure = {
-  main: CardEntry[];
-  commanders: CardEntry[];
-  sideboard?: CardEntry[];
+    main: CardEntry[];
+    commanders: CardEntry[];
+    sideboard?: CardEntry[];
 };
 
 @Injectable()
 export class DecksService {
-  constructor(
-      @InjectRepository(Deck)
-      private readonly deckRepository: Repository<Deck>,
-
-      // 1. Removed direct @InjectRepository(Card) constructor parameter to resolve dependency injection collision
-      private readonly cardsService: CardsService,
-  ) {}
-
-  async checkCardsInDeck(
-      deckStructure: NestedDeckStructure,
-      infiniteCombos: any = []
-  ): Promise<{
-    bracket: number;
-    tags: string[];
-    gamechangerCount: number;
-    tutorCount: number;
-    fastManaCount: number;
-  }> {
-
-    const deckstats = {
-      gamechangers: 0,
-      fastmana: 0,
-      tutors: 0,
-      combos: Array.isArray(infiniteCombos)
-          ? infiniteCombos.length
-          : infiniteCombos ? Object.keys(infiniteCombos).length : 0,
-      isBanned: false
-    };
-
-    const quantityMap = new Map<string, number>();
-
-    const processEntries = (entries: CardEntry[]) => {
-      if (!entries) return;
-      for (const entry of entries) {
-        if (entry?.card) {
-          const qty = entry.quantity || 1;
-          quantityMap.set(entry.card, (quantityMap.get(entry.card) || 0) + qty);
-        }
-      }
-    };
-
-    processEntries(deckStructure?.commanders || []);
-    processEntries(deckStructure?.main || []);
-    processEntries(deckStructure?.sideboard || []);
-
-    const allCardNames = Array.from(quantityMap.keys());
-
-    if (allCardNames.length === 0) {
-      return {
-        bracket: 1,
-        tags: [],
-        gamechangerCount: 0,
-        tutorCount: 0,
-        fastManaCount: 0
-      };
+    constructor(
+        @InjectRepository(Deck)
+        private readonly deckRepository: Repository<Deck>,
+        private readonly cardsService: CardsService,
+    ) {
     }
 
-    // 2. Safely call the repository lookup proxy method via cardsService to load full records mapping
-    const cardsInDb = await this.cardsService.findByNames(allCardNames);
+    async checkCardsInDeck(
+        deckStructure: NestedDeckStructure,
+        infiniteCombos: any = []
+    ): Promise<{
+        bracket: number;
+        tags: string[];
+        gamechangerCount: number;
+        tutorCount: number;
+        fastManaCount: number;
+        stapleCount: number;
+    }> {
 
-    const tagCounts = new Map<string, number>();
-    const subtypeCounts = new Map<string, number>();
+        const deckstats = {
+            gamechangers: 0,
+            fastmana: 0,
+            tutors: 0,
+            staples: 0,
+            combos: Array.isArray(infiniteCombos)
+                ? infiniteCombos.length
+                : infiniteCombos ? Object.keys(infiniteCombos).length : 0,
+            isBanned: false
+        };
 
-    for (const card of cardsInDb) {
-      const cardQty = quantityMap.get(card.name) || 1;
+        const quantityMap = new Map<string, number>();
 
-      const tagsArray = Array.isArray(card.tags)
-          ? card.tags
-          : (card.tags as unknown as string) ? (card.tags as unknown as string).split(',') : [];
+        const processEntries = (entries: CardEntry[]) => {
+            if (!entries) return;
+            for (const entry of entries) {
+                if (entry?.card) {
+                    const qty = entry.quantity || 1;
+                    quantityMap.set(entry.card, (quantityMap.get(entry.card) || 0) + qty);
+                }
+            }
+        };
 
-      tagsArray.forEach(rawTag => {
-        if (rawTag) {
-          const tag = rawTag.trim();
-          tagCounts.set(tag, (tagCounts.get(tag) || 0) + cardQty);
+        processEntries(deckStructure?.commanders || []);
+        processEntries(deckStructure?.main || []);
+        processEntries(deckStructure?.sideboard || []);
+
+        const allCardNames = Array.from(quantityMap.keys());
+
+        if (allCardNames.length === 0) {
+            return {
+                bracket: 1,
+                tags: [],
+                gamechangerCount: 0,
+                tutorCount: 0,
+                fastManaCount: 0,
+                stapleCount: 0
+            };
         }
-      });
 
-      if (card.type && card.type.includes('—')) {
-        const [, subtypesPart] = card.type.split('—');
-        const subtypes = subtypesPart.trim().split(/\s+/);
+        const cardsInDb = await this.cardsService.findByNames(allCardNames);
 
-        subtypes.forEach(subtype => {
-          const cleanSubtype = subtype.trim();
-          if (cleanSubtype) {
-            subtypeCounts.set(cleanSubtype, (subtypeCounts.get(cleanSubtype) || 0) + cardQty);
-          }
+        const tagCounts = new Map<string, number>();
+        const subtypeCounts = new Map<string, number>();
+
+        for (const card of cardsInDb) {
+            const cardQty = quantityMap.get(card.name) || 1;
+
+            const tagsArray = Array.isArray(card.tags)
+                ? card.tags
+                : (card.tags as unknown as string) ? (card.tags as unknown as string).split(',') : [];
+
+            tagsArray.forEach(rawTag => {
+                if (rawTag) {
+                    const tag = rawTag.trim();
+                    tagCounts.set(tag, (tagCounts.get(tag) || 0) + cardQty);
+                }
+            });
+
+            if (card.type && card.type.includes('—')) {
+                const [, subtypesPart] = card.type.split('—');
+                const subtypes = subtypesPart.trim().split(/\s+/);
+
+                subtypes.forEach(subtype => {
+                    const cleanSubtype = subtype.trim();
+                    if (cleanSubtype) {
+                        subtypeCounts.set(cleanSubtype, (subtypeCounts.get(cleanSubtype) || 0) + cardQty);
+                    }
+                });
+            }
+
+            if (card.isGamechanger) {
+                deckstats.gamechangers += cardQty;
+            }
+
+            if (card.isStaple) {
+                deckstats.staples += cardQty;
+            }
+
+            if (card.isFastMana) {
+                deckstats.fastmana += cardQty;
+            }
+
+            if (card.isTutor) {
+                deckstats.tutors += cardQty;
+            }
+
+            const hasBannedTag = tagsArray.some(tag => tag.toLowerCase() === 'banned');
+            if (hasBannedTag || card.isCommanderBanned) {
+                deckstats.isBanned = true;
+            }
+        }
+
+        const TRIBAL_THRESHOLD = 15;
+
+        subtypeCounts.forEach((count, subtype) => {
+            if (count >= TRIBAL_THRESHOLD) {
+                tagCounts.set(`${subtype} Tribal`, count * 1.5);
+            }
         });
-      }
 
-      if (card.isGamechanger) {
-        deckstats.gamechangers += cardQty;
-      }
+        const topThreeTags = Array.from(tagCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map(entry => entry[0])
+            .slice(0, 3);
 
-      if (tagsArray.includes('Fast Mana')) {
-        deckstats.fastmana += cardQty;
-      }
 
-      if (tagsArray.includes('Tutor')) {
-        deckstats.tutors += cardQty;
-      }
 
-      const hasBannedTag = tagsArray.some(tag => tag.toLowerCase() === 'banned');
-      if (hasBannedTag) {
-        deckstats.isBanned = true;
-      }
+        return {
+            bracket: this.calculateBracket(deckstats),
+            tags: topThreeTags,
+            gamechangerCount: deckstats.gamechangers,
+            tutorCount: deckstats.tutors,
+            fastManaCount: deckstats.fastmana,
+            stapleCount: deckstats.staples
+        };
     }
 
-    const TRIBAL_THRESHOLD = 15;
+    async comparePod(comparePodDto: ComparePodDto) {
+        const { deckIds } = comparePodDto;
 
-    subtypeCounts.forEach((count, subtype) => {
-      if (count >= TRIBAL_THRESHOLD) {
-        tagCounts.set(`${subtype} Tribal`, count * 1.5);
-      }
-    });
+        if (!deckIds || deckIds.length !== 4) {
+            throw new Error('A pod must consist of exactly 4 decks.');
+        }
 
-    const topThreeTags = Array.from(tagCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(entry => entry[0])
-        .slice(0, 3);
+        const decks = await this.deckRepository.find({
+            where: deckIds.map(deckId => ({ id: deckId }))
+        });
 
-    let finalBracket = 1;
+        if (decks.length != 4) {
+            const foundNames = decks.map(d => d.name.toLowerCase());
+            const missing = deckIds.filter(name => !foundNames.includes(name.toLowerCase()));
+            throw new NotFoundException(`Could not match all decks. Missing: ${missing.join(', ')}`);
+        }
 
-    if (deckstats.isBanned) {
-      finalBracket = 5;
-    } else if ((deckstats.combos >= 2 && deckstats.fastmana >= 3 && deckstats.tutors >= 4) ||
-        (deckstats.gamechangers >= 5 || deckstats.fastmana >= 5)) {
-      finalBracket = 4;
-    } else if (deckstats.combos > 0 || deckstats.gamechangers > 0 || deckstats.tutors > 3) {
-      finalBracket = 3;
-    } else if (deckstats.combos === 0 && deckstats.gamechangers === 0 && deckstats.tutors <= 3) {
-      if (deckstats.fastmana > 1) {
-        finalBracket = 3;
-      } else {
-        finalBracket = 2;
-      }
+        const getComboCount = (deck: Deck) =>
+            Array.isArray(deck.infiniteCombos) ? deck.infiniteCombos.length : 0;
+
+        const getPowerScore = (deck: Deck) =>
+            getComboCount(deck) * 4 +
+            deck.gamechangerCount * 3 +
+            deck.fastManaCount * 2 +
+            deck.tutorCount;
+
+        const scoredDecks = decks.map(deck => ({
+            deck,
+            powerScore: getPowerScore(deck),
+            comboCount: getComboCount(deck),
+        }));
+
+        const brackets = decks.map(d => d.bracket);
+        const maxBracket = Math.max(...brackets);
+        const minBracket = Math.min(...brackets);
+        const bracketDisparity = maxBracket - minBracket;
+
+        const scores = scoredDecks.map(s => s.powerScore);
+        const avgScore = scores.reduce((a, b) => a + b, 0) / 4;
+
+        const strongest = [...scoredDecks].sort((a, b) => {
+            if (b.deck.bracket !== a.deck.bracket) return b.deck.bracket - a.deck.bracket;
+            return b.powerScore - a.powerScore;
+        })[0];
+
+        const weakest = [...scoredDecks].sort((a, b) => {
+            if (a.deck.bracket !== b.deck.bracket) return a.deck.bracket - b.deck.bracket;
+            return a.powerScore - b.powerScore;
+        })[0];
+
+        const warnings: string[] = [];
+        let compatibilityScore = 100;
+
+        if (bracketDisparity >= 3) {
+            compatibilityScore -= 40;
+        } else if (bracketDisparity >= 2) {
+            compatibilityScore -= 25;
+        } else if (bracketDisparity === 1) {
+            compatibilityScore -= 10;
+        }
+
+        for (const { deck, powerScore } of scoredDecks) {
+            if (avgScore > 0 && powerScore > avgScore * 1.75) {
+                warnings.push(`"${deck.name}" is significantly stronger than the pod average.`);
+                compatibilityScore -= 10;
+            } else if (avgScore > 0 && powerScore < avgScore * 0.3 && avgScore >= 4) {
+                warnings.push(`"${deck.name}" may be too weak for this pod.`);
+                compatibilityScore -= 5;
+            }
+        }
+
+        const decksWithCombos = scoredDecks.filter(s => s.comboCount > 0);
+        if (decksWithCombos.length === 1) {
+            warnings.push(`Only "${decksWithCombos[0].deck.name}" runs infinite combos — significant asymmetry.`);
+            compatibilityScore -= 15;
+        } else if (decksWithCombos.length === 2) {
+            const names = decksWithCombos.map(s => `"${s.deck.name}"`).join(' and ');
+            warnings.push(`${names} run infinite combos while the other two decks don't.`);
+            compatibilityScore -= 8;
+        }
+
+        const avgGC = decks.reduce((acc, d) => acc + d.gamechangerCount, 0) / 4;
+        for (const deck of decks) {
+            if (deck.gamechangerCount > avgGC + 3) {
+                warnings.push(`"${deck.name}" has significantly more game changers than the rest of the pod.`);
+                compatibilityScore -= 8;
+            }
+        }
+
+        const avgFM = decks.reduce((acc, d) => acc + d.fastManaCount, 0) / 4;
+        for (const deck of decks) {
+            if (deck.fastManaCount > avgFM + 2) {
+                warnings.push(`"${deck.name}" has significantly more fast mana than the rest of the pod.`);
+                compatibilityScore -= 8;
+            }
+        }
+
+        compatibilityScore = Math.max(compatibilityScore, 10);
+
+        let status: string;
+        let statusMessage: string;
+
+        if (compatibilityScore >= 85) {
+            status = 'Fair Pod';
+            statusMessage = 'Power levels are well balanced. Go ahead and play!';
+        } else if (compatibilityScore >= 65) {
+            status = 'Slight Disparity';
+            statusMessage = `"${strongest.deck.name}" has an edge, but the game is still playable.`;
+        } else if (compatibilityScore >= 40) {
+            status = 'Notable Imbalance';
+            statusMessage = `There's a meaningful gap between "${strongest.deck.name}" and "${weakest.deck.name}". Consider swapping a deck.`;
+        } else {
+            status = 'Unfair Pod';
+            statusMessage = `"${strongest.deck.name}" is too powerful for this pod. Strongly consider switching decks.`;
+        }
+
+        return {
+            compatibility: `${compatibilityScore}%`,
+            status,
+            statusMessage,
+            warnings: warnings.length > 0 ? warnings : ['No significant variance detected — looks like a fair pod!'],
+            decks: scoredDecks.map(({ deck, powerScore, comboCount }) => ({
+                id: deck.id,
+                name: deck.name,
+                bracket: deck.bracket,
+                powerScore,
+                infinites: comboCount > 0 ? comboCount : 'none',
+                gameChangers: deck.gamechangerCount || 'none',
+                fastMana: deck.fastManaCount || 'none',
+                tutors: deck.tutorCount || 'none',
+                tags: deck.tags,
+                isOutlier: powerScore > avgScore * 1.75 || (deck.bracket === maxBracket && bracketDisparity >= 2),
+            }))
+        };
     }
 
-    return {
-      bracket: finalBracket,
-      tags: topThreeTags,
-      gamechangerCount: deckstats.gamechangers,
-      tutorCount: deckstats.tutors,
-      fastManaCount: deckstats.fastmana
-    };
-  }
+    async create(createDeckDto: CreateDeckDto): Promise<Deck> {
 
-  async comparePod(comparePodDto: ComparePodDto) {
-    const { deckNames } = comparePodDto;
+        const hasNestedDeck = 'deck' in createDeckDto && (createDeckDto as any).deck;
 
-    if (!deckNames || deckNames.length !== 4) {
-      throw new Error('A pod must consist of exactly 4 decks.');
+        const deckStructure: NestedDeckStructure = hasNestedDeck
+            ? (createDeckDto as any).deck
+            : createDeckDto;
+
+        const name = (createDeckDto as any).name || 'Untitled Deck';
+        const favorite = (createDeckDto as any).favorite || false;
+
+        const deck = this.deckRepository.create({
+            name,
+            favorite,
+            deck: deckStructure
+        });
+
+        if (deckStructure && (Array.isArray(deckStructure.main) || Array.isArray(deckStructure.commanders))) {
+            deck.infiniteCombos = await this.checkInfiniteCombos(deckStructure);
+
+            const {
+                bracket,
+                tags,
+                gamechangerCount,
+                tutorCount,
+                fastManaCount,
+                stapleCount
+            } = await this.checkCardsInDeck(deckStructure, deck.infiniteCombos);
+
+            deck.bracket = bracket;
+            deck.tags = tags;
+            deck.gamechangerCount = gamechangerCount;
+            deck.tutorCount = tutorCount;
+            deck.fastManaCount = fastManaCount;
+            deck.stapleCount = stapleCount;
+        }
+
+        return await this.deckRepository.save(deck);
     }
 
-    const decks = await this.deckRepository.find({
-      where: deckNames.map(name => ({ name: ILike(name.trim()) }))
-    });
+    async update(id: string, updateDeckDto: UpdateDeckDto): Promise<Deck> {
+        const deck = await this.deckRepository.findOne({where: {id}});
+        if (!deck) {
+            throw new NotFoundException(`Deck with ID ${id} not found`);
+        }
+        const updatedDeck = this.deckRepository.merge(deck, updateDeckDto);
 
-    if (decks.length !== 4) {
-      const foundNames = decks.map(d => d.name.toLowerCase());
-      const missing = deckNames.filter(name => !foundNames.includes(name.toLowerCase()));
-      throw new NotFoundException(`Could not match all decks. Missing: ${missing.join(', ')}`);
+        if (updateDeckDto.deck) {
+            const deckStructure = updateDeckDto.deck as NestedDeckStructure;
+            updatedDeck.infiniteCombos = await this.checkInfiniteCombos(deckStructure);
+
+            const {
+                bracket,
+                tags,
+                gamechangerCount,
+                tutorCount,
+                fastManaCount,
+                stapleCount
+            } = await this.checkCardsInDeck(deckStructure, updatedDeck.infiniteCombos);
+
+            updatedDeck.bracket = bracket;
+            updatedDeck.tags = tags;
+            updatedDeck.gamechangerCount = gamechangerCount;
+            updatedDeck.tutorCount = tutorCount;
+            updatedDeck.fastManaCount = fastManaCount;
+            updatedDeck.stapleCount = stapleCount;
+        }
+
+        return await this.deckRepository.save(updatedDeck);
     }
 
-    const sortedDecksByPower = [...decks].sort((a, b) => {
-      if (b.bracket !== a.bracket) return b.bracket - a.bracket;
-
-      const powerA = a.gamechangerCount + a.fastManaCount + a.tutorCount;
-      const powerB = b.gamechangerCount + b.fastManaCount + b.tutorCount;
-      return powerB - powerA;
-    });
-
-    const strongestDeck = sortedDecksByPower[0];
-    const weakestDeck = sortedDecksByPower[3];
-
-    const warnings: string[] = [];
-    let bracketDisparity = strongestDeck.bracket - weakestDeck.bracket;
-
-    let compatibilityScore = 100;
-
-    if (bracketDisparity >= 1) {
-      compatibilityScore -= (bracketDisparity * 20);
+    async findAll(): Promise<Deck[]> {
+        return await this.deckRepository.find();
     }
 
-    const averageOtherGamechangers = (decks.reduce((acc, d) => acc + d.gamechangerCount, 0) - strongestDeck.gamechangerCount) / 3;
-    if (strongestDeck.gamechangerCount > averageOtherGamechangers + 3) {
-      warnings.push(`"${strongestDeck.name}" contains significantly more game-changers than the rest of the pod.`);
-      compatibilityScore -= 10;
+    async findOne(id: string): Promise<any> {
+        const deckEntity = await this.deckRepository.findOne({where: {id}});
+        if (!deckEntity) {
+            throw new NotFoundException(`Deck with ID ${id} not found`);
+        }
+
+        const deck = {...deckEntity};
+
+        const cardNamesSet = new Set<string>();
+        deck.deck?.main?.forEach(entry => {
+            if (entry.card) cardNamesSet.add(entry.card);
+        });
+        deck.deck?.commanders?.forEach(entry => {
+            if (entry.card) cardNamesSet.add(entry.card);
+        });
+        deck.deck?.sideboard?.forEach(entry => {
+            if (entry.card) cardNamesSet.add(entry.card);
+        });
+
+        const uniqueCardNames = Array.from(cardNamesSet);
+
+        let cardDetailsMap = new Map<string, any>();
+        if (uniqueCardNames.length > 0) {
+            try {
+                const cards = await this.cardsService.findByNames(uniqueCardNames);
+                cardDetailsMap = new Map(cards.map(card => [card.name, card]));
+            } catch (error) {
+                console.warn('Could not batch fetch card details', error);
+            }
+        }
+
+        let gamechangerCount = 0;
+        let tutorCount = 0;
+        let fastManaCount = 0;
+        let stapleCount = 0;
+
+        const enrichCardEntries = (entries: any[] = []) => {
+            return entries.map(entry => {
+                const details = cardDetailsMap.get(entry.card) || null;
+
+                if (details) {
+                    const qty = entry.quantity || 1;
+                    if (details.isGamechanger) gamechangerCount += qty;
+                    if (details.isTutor) tutorCount += qty;
+                    if (details.isFastMana) fastManaCount += qty;
+                    if (details.isStaple) stapleCount += qty;
+                }
+
+                return {
+                    ...entry,
+                    details
+                };
+            });
+        };
+
+        const updatedDeckStructure = {...deck.deck};
+
+        if (deck.deck) {
+            updatedDeckStructure.main = enrichCardEntries(deck.deck.main);
+            updatedDeckStructure.commanders = enrichCardEntries(deck.deck.commanders);
+            if (deck.deck.sideboard) {
+                updatedDeckStructure.sideboard = enrichCardEntries(deck.deck.sideboard);
+            }
+        }
+
+        const firstCommanderName = deck.deck?.commanders?.[0]?.card;
+        const commanderCard = firstCommanderName ? cardDetailsMap.get(firstCommanderName) : null;
+
+        return {
+            ...deck,
+            deck: updatedDeckStructure,
+            commanderCard,
+            gamechangerCount,
+            tutorCount,
+            fastManaCount,
+            stapleCount
+        };
     }
 
-    const averageOtherFastMana = (decks.reduce((acc, d) => acc + d.fastManaCount, 0) - strongestDeck.fastManaCount) / 3;
-    if (strongestDeck.fastManaCount > averageOtherFastMana + 2) {
-      warnings.push(`"${strongestDeck.name}" relies heavily on Fast Mana accelerants compared to peers.`);
-      compatibilityScore -= 10;
+    async remove(id: string): Promise<void> {
+        const result = await this.deckRepository.delete(id);
+        if (result.affected === 0) {
+            throw new NotFoundException(`Deck with ID ${id} not found`);
+        }
     }
 
-    const getComboCount = (deck: Deck) => Array.isArray(deck.infiniteCombos) ? deck.infiniteCombos.length : 0;
-    const strongestComboCount = getComboCount(strongestDeck);
-    const otherHasCombos = decks.some(d => d.id !== strongestDeck.id && getComboCount(d) > 0);
-
-    if (strongestComboCount > 0 && !otherHasCombos) {
-      warnings.push(`"${strongestDeck.name}" runs infinite combos while no other deck in the pod does.`);
-      compatibilityScore -= 15;
+    async getFavoriteDecks(): Promise<Deck[]> {
+        return await this.deckRepository.find({
+            where: {favorite: true},
+        });
     }
 
-    compatibilityScore = Math.max(compatibilityScore, 20);
+    public async checkInfiniteCombos(deckStructure: NestedDeckStructure): Promise<any[]> {
+        try {
+            if (!deckStructure) return [];
 
-    let status = 'Pod is Fair';
-    let statusMessage = 'The power tiers are tightly balanced. Go ahead and start the game!';
+            const commanders = deckStructure.commanders?.map(c => c.card) || [];
+            const mainCards  = deckStructure.main?.map(c => c.card)       || [];
+            const sideCards  = deckStructure.sideboard?.map(c => c.card)  || [];
 
-    if (compatibilityScore < 85 && compatibilityScore >= 60) {
-      status = 'Slight Disparity';
-      statusMessage = `"${strongestDeck.name}" has an edge, but the game is still highly playable.`;
-    } else if (compatibilityScore < 60) {
-      status = 'Pod is not fair';
-      statusMessage = `"${strongestDeck.name}" is too strong compared to the rest. Consider switching decks.`;
+            const commanderLines = commanders.map(name => `1 ${name} *CMDR*`);
+            const mainLines      = Array.from(new Set([...mainCards, ...sideCards]))
+                .map(name => `1 ${name}`);
+
+            const decklist = [...commanderLines, ...mainLines].join('\n');
+            if (!decklist) return [];
+
+            const response = await fetch(
+                `https://backend.commanderspellbook.com/find-my-combos?count=false`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'text/plain',
+                    },
+                    body: decklist,
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(`Combo microservice returned status ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data?.results?.included || [];
+        } catch (error) {
+            console.error('Failed to parse microservice combo data array:', error);
+            return [];
+        }
     }
 
-    return {
-      compatibility: `${compatibilityScore}%`,
-      status,
-      statusMessage,
-      warnings: warnings.length > 0 ? warnings : ['No significant metric variance detected between decks.'],
-      decks: decks.map(d => ({
-        id: d.id,
-        name: d.name,
-        infinites: getComboCount(d) > 0 ? 'yes' : 'no',
-        gameChangers: d.gamechangerCount > 0 ? `${d.gamechangerCount}` : 'none',
-        bracket: String(d.bracket),
-        interaction: d.tutorCount >= 4 ? 'high' : d.tutorCount >= 2 ? 'medium' : 'low',
-        tutors: d.tutorCount > 0 ? `${d.tutorCount}` : 'none',
-        tags: d.tags,
-        isOutlier: d.id === strongestDeck.id && compatibilityScore < 85
-      }))
-    };
-  }
+    public calculateBracket(deckstats: {
+        isBanned: boolean;
+        combos: number;
+        fastmana: number;
+        tutors: number;
+        gamechangers: number;
+    }): number {
+        const { isBanned, combos, fastmana, tutors, gamechangers } = deckstats;
 
-  async create(createDeckDto: CreateDeckDto): Promise<Deck> {
-    const deck = this.deckRepository.create(createDeckDto);
-    const deckStructure = createDeckDto.deck as NestedDeckStructure;
+        // Bracket 5 banned cards
+        if (isBanned) return 5;
 
-    if (deckStructure) {
-      deck.infiniteCombos = await this.checkInfiniteCombos(deckStructure);
+        // Bracket 4 cEDH with banlist
+        if (
+            gamechangers >= 4 ||
+            combos >= 2 ||
+            (combos >= 1 && tutors >= 3) ||
+            (combos >= 1 && fastmana >= 3) ||
+            (fastmana >= 4 && tutors >= 3)
+        ) return 4;
 
-      const {
-        bracket,
-        tags,
-        gamechangerCount,
-        tutorCount,
-        fastManaCount
-      } = await this.checkCardsInDeck(deckStructure, deck.infiniteCombos);
-
-      deck.bracket = bracket;
-      deck.tags = tags;
-      deck.gamechangerCount = gamechangerCount;
-      deck.tutorCount = tutorCount;
-      deck.fastManaCount = fastManaCount;
+        // Bracket 3 focused with restrictions (yes precons with gamechangers and or combos are in here)
+        if (
+            gamechangers >= 2 ||
+            combos >= 1 ||
+            tutors >= 3 ||
+            (gamechangers >= 1 && fastmana >= 2) ||
+            (gamechangers >= 1 && tutors >= 2)
+        ) return 3;
+        // precon lvl
+        return 2;
     }
-
-    return await this.deckRepository.save(deck);
-  }
-
-  async update(id: string, updateDeckDto: UpdateDeckDto): Promise<Deck> {
-    const deck = await this.deckRepository.findOne({ where: { id } });
-    if (!deck) {
-      throw new NotFoundException(`Deck with ID ${id} not found`);
-    }
-    const updatedDeck = this.deckRepository.merge(deck, updateDeckDto);
-
-    if (updateDeckDto.deck) {
-      const deckStructure = updateDeckDto.deck as NestedDeckStructure;
-      updatedDeck.infiniteCombos = await this.checkInfiniteCombos(deckStructure);
-
-      const {
-        bracket,
-        tags,
-        gamechangerCount,
-        tutorCount,
-        fastManaCount
-      } = await this.checkCardsInDeck(deckStructure, updatedDeck.infiniteCombos);
-
-      updatedDeck.bracket = bracket;
-      updatedDeck.tags = tags;
-      updatedDeck.gamechangerCount = gamechangerCount;
-      updatedDeck.tutorCount = tutorCount;
-      updatedDeck.fastManaCount = fastManaCount;
-    }
-
-    return await this.deckRepository.save(updatedDeck);
-  }
-
-  async findAll(): Promise<Deck[]> {
-    return await this.deckRepository.find();
-  }
-
-  async findOne(id: string): Promise<any> {
-    const deck = await this.deckRepository.findOne({ where: { id } });
-    if (!deck) {
-      throw new NotFoundException(`Deck with ID ${id} not found`);
-    }
-
-    const commanderName = deck.deck?.commanders?.[0]?.card;
-    let commanderDetails: Card | null = null;
-
-    if (commanderName) {
-      try {
-        commanderDetails = await this.cardsService.findOne(commanderName);
-      } catch (error) {
-        console.warn(`Could not find commander card details for: ${commanderName}`);
-      }
-    }
-
-    return {
-      ...deck,
-      commanderCard: commanderDetails,
-    };
-  }
-
-  async remove(id: string): Promise<void> {
-    const result = await this.deckRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Deck with ID ${id} not found`);
-    }
-  }
-
-  async getFavoriteDecks(): Promise<Deck[]> {
-    return await this.deckRepository.find({
-      where: { favorite: true },
-    });
-  }
-
-  public async checkInfiniteCombos(deckStructure: NestedDeckStructure): Promise<any[]> {
-    try {
-      if (!deckStructure) return [];
-
-      const commanders = deckStructure.commanders?.map(c => c.card) || [];
-      const mainCards = deckStructure.main?.map(c => c.card) || [];
-      const sideCards = deckStructure.sideboard?.map(c => c.card) || [];
-
-      const cardNames = Array.from(new Set([...commanders, ...mainCards, ...sideCards]));
-
-      if (cardNames.length === 0) return [];
-
-      const response = await fetch(
-          `https://backend.commanderspellbook.com/find-my-combos?count=false`,
-          {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ cards: cardNames }),
-          },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Combo microservice returned status ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data?.results?.included || [];
-    } catch (error) {
-      console.error('Failed to parse microservice combo data array:', error);
-      return [];
-    }
-  }
 }
