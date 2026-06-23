@@ -62,4 +62,10 @@ export class Card {
         default: false,
     })
     isFastMana: boolean;
+
+    @Column({
+        type: 'varchar',
+        nullable: true,
+    })
+    image_uri: string;
 }

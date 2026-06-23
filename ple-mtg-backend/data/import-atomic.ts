@@ -31,6 +31,7 @@ async function importAtomic() {
             colors TEXT,
             "colorIdentity" TEXT,
             tags TEXT,
+            image_uri TEXT,
             "isTutor" BOOLEAN DEFAULT FALSE,
             "isGamechanger" BOOLEAN DEFAULT FALSE,
             "isStaple" BOOLEAN DEFAULT FALSE,
@@ -79,6 +80,15 @@ async function importAtomic() {
 
         const colors = card.colors ? card.colors.join(',') : null;
         const colorIdentity = card.colorIdentity ? card.colorIdentity.join(',') : null;
+
+        // Extracting Scryfall Oracle Id to build the static Scryfall image asset delivery URL
+        let imageUri: string | null = null;
+        const oracleId = card.identifiers?.scryfallOracleId;
+        if (oracleId && oracleId.length >= 2) {
+            const firstChar = oracleId.charAt(0);
+            const secondChar = oracleId.charAt(1);
+            imageUri = `https://cards.scryfall.io/normal/front/${firstChar}/${secondChar}/${oracleId}.jpg`;
+        }
 
         const generatedTags: string[] = [];
         const textLower = (card.text || '').toLowerCase();
@@ -282,10 +292,10 @@ async function importAtomic() {
             : null;
 
         const query = `
-            INSERT INTO cards (name, text, flip_text, type, "manaCost", power, toughness, colors, "colorIdentity", tags,
+            INSERT INTO cards (name, text, flip_text, type, "manaCost", power, toughness, colors, "colorIdentity", tags, image_uri,
                                "isTutor", "isGamechanger", "isStaple", "isFastMana", "isCommanderLegal",
                                "isCommanderBanned")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                 ON CONFLICT (name) DO UPDATE
                                           SET
                                               "manaCost" = EXCLUDED."manaCost",
@@ -297,6 +307,7 @@ async function importAtomic() {
                                           toughness = EXCLUDED.toughness,
                                           colors = EXCLUDED.colors,
                                           "colorIdentity" = EXCLUDED."colorIdentity",
+                                          image_uri = EXCLUDED.image_uri,
                                           "isTutor" = EXCLUDED."isTutor",
                                           "isGamechanger" = EXCLUDED."isGamechanger",
                                           "isStaple" = EXCLUDED."isStaple",
@@ -316,6 +327,7 @@ async function importAtomic() {
             colors,
             colorIdentity,
             finalTagsString,
+            imageUri,
             isTutor,
             isGamechanger,
             isStaple,
@@ -332,7 +344,7 @@ async function importAtomic() {
         }
     }
 
-    console.log(`\n🎉 Success! Finished importing ${count} Atomic cards perfectly with tag populations.`);
+    console.log(`\n🎉 Success! Finished importing ${count} Atomic cards perfectly with Scryfall Image URIs.`);
     await client.end();
 }
 

@@ -282,7 +282,7 @@ export class DecksService {
             compatibility: `${compatibilityScore}%`,
             status,
             statusMessage,
-            warnings: warnings.length > 0 ? warnings : ['No significant variance detected — looks like a fair pod!'],
+            warnings: warnings.length > 0 ? warnings : ['No significant variance detected — have a good game!'],
             decks: scoredDecks.map(({ deck, powerScore, comboCount }) => ({
                 id: deck.id,
                 name: deck.name,
