@@ -224,8 +224,8 @@ export class DecksService {
         }
 
         for (const { deck, powerScore } of scoredDecks) {
-            if (avgScore > 0 && powerScore > avgScore * 1.75) {
-                warnings.push(`"${deck.name}" is significantly stronger than the pod average.`);
+            if (avgScore > 0 && powerScore > avgScore * 2) {
+                warnings.push(`"${deck.name}" is stronger than the pod average.`);
                 compatibilityScore -= 10;
             } else if (avgScore > 0 && powerScore < avgScore * 0.3 && avgScore >= 4) {
                 warnings.push(`"${deck.name}" may be too weak for this pod.`);
@@ -235,11 +235,11 @@ export class DecksService {
 
         const decksWithCombos = scoredDecks.filter(s => s.comboCount > 0);
         if (decksWithCombos.length === 1) {
-            warnings.push(`Only "${decksWithCombos[0].deck.name}" runs infinite combos — significant asymmetry.`);
+            warnings.push(`Only "${decksWithCombos[0].deck.name}" runs combos. Which makes for a big power difference.`);
             compatibilityScore -= 15;
         } else if (decksWithCombos.length === 2) {
             const names = decksWithCombos.map(s => `"${s.deck.name}"`).join(' and ');
-            warnings.push(`${names} run infinite combos while the other two decks don't.`);
+            warnings.push(`${names} run combos while the other two decks don't.`);
             compatibilityScore -= 8;
         }
 
@@ -264,7 +264,7 @@ export class DecksService {
         let status: string;
         let statusMessage: string;
 
-        if (compatibilityScore >= 85) {
+        if (compatibilityScore >= 80) {
             status = 'Fair Pod';
             statusMessage = 'Power levels are well balanced. Go ahead and play!';
         } else if (compatibilityScore >= 65) {

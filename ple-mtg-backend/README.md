@@ -23,7 +23,7 @@
 
 ## Description
 
-This is the backend of the MTG Commanders context app. 
+This is the backend of the Commandex. if you want the full project you can get the expo frontend here: https://github.com/VincentBenders/PLE-MTG-Stattrack
 ## Project setup
 
 1. make sure [docker](https://www.docker.com/products/docker-desktop/) is installed on your development device
@@ -35,6 +35,13 @@ $ docker compose up
 3. install dependencies
 ```bash
 $ npm install
+```
+4. download the atomic cards.json
+https://mtgjson.com/downloads/all-files/#atomiccards
+
+5. use the script to initialize the cards
+```bash
+$ npx ts-node data/import-atomic.ts
 ```
 
 ## Compile and run the project
@@ -67,6 +74,32 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
+
+# API Endpoints
+
+## User Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/user/create` | Create a new user account. |
+| POST | `/user/login` | Log in with user credentials. |
+| GET | `/user` | Get all users. |
+| PATCH | `/user/:id` | Update a user by ID. |
+| DELETE | `/user/:id` | Delete a user by ID. |
+
+---
+
+## Deck Endpoints
+
+| Method | Endpoint | Description                                    |
+|--------|----------|------------------------------------------------|
+| POST | `/decks` | Create a new deck.                             |
+| GET | `/decks` | Get all decks.                                 |
+| GET | `/decks/:id` | Get a specific deck by ID.                     |
+| GET | `/decks/combos/:id` | Check a deck for infinite combos.(for testing) |
+| PATCH | `/decks/:id` | Update a deck by ID.                           |
+| DELETE | `/decks/:id` | Delete a deck by ID.                           |
+| POST | `/decks/compare` | Compare multiple decks (pod comparison).       |
 
 ## Deployment
 

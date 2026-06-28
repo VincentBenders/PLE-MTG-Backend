@@ -2,9 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Client } from 'pg';
 
-// https://mtgjson.com/downloads/all-files/#atomiccards
-// npx ts-node data/import-atomic.ts
-
 async function importAtomic() {
     const client = new Client({
         host: 'localhost',
@@ -81,7 +78,6 @@ async function importAtomic() {
         const colors = card.colors ? card.colors.join(',') : null;
         const colorIdentity = card.colorIdentity ? card.colorIdentity.join(',') : null;
 
-        // Extracting Scryfall Oracle Id to build the static Scryfall image asset delivery URL
         let imageUri: string | null = null;
         const oracleId = card.identifiers?.scryfallOracleId;
         if (oracleId && oracleId.length >= 2) {
