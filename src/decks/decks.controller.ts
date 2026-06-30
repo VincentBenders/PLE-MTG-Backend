@@ -31,6 +31,7 @@ export class DecksController {
     return this.decksService.findOne(id);
   }
 
+  //for testing
   @Get('combos/:id')
   async checkInfiniteCombos(@Param('id') id: string) {
     const deck = await this.decksService.findOne(id);

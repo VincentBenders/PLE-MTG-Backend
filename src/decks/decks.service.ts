@@ -1,10 +1,9 @@
-import {Injectable, NotFoundException} from '@nestjs/common';
+import {BadRequestException, Injectable, NotFoundException} from '@nestjs/common';
 import {CreateDeckDto} from './dto/create-deck.dto';
 import {UpdateDeckDto} from './dto/update-deck.dto';
 import {InjectRepository} from '@nestjs/typeorm';
-import {ILike, In, Repository} from 'typeorm';
+import {Repository} from 'typeorm';
 import {Deck} from './entities/deck.entity';
-import {Card} from "../cards/entities/card.entity";
 import {ComparePodDto} from "./dto/compare-pod.dto";
 import {CardsService} from '../cards/cards.service';
 
@@ -22,6 +21,33 @@ type NestedDeckStructure = {
     commanders: CardEntry[];
     sideboard?: CardEntry[];
 };
+
+//values for the alghorithem
+const highDifferenceMultiplier = 2.75;
+const lowDifferenceMultiplier = 0.4;
+const weakOutlierAverage = 8;
+const outlierPelanty = 10;
+const weakPelanty = 5;
+
+const singleComboDeckPenalty = 15;
+const twoComboDeckPenalty = 8;
+
+const gamechangerTreshhold = 4;
+const gamechangerPenaltiy = 8;
+const fastmanaThreshold = 3;
+const fastmanaPenalty = 8;
+
+const minCompatebilityScore = 10;
+const showOutlier = 2.5;
+
+const comboWeight = 4;
+const gamechangerWeight = 3;
+const fastmanaWeight = 2;
+const tutorWeight = 1;
+
+//timeout on combo
+const comboTimeout = 8000;
+
 
 @Injectable()
 export class DecksService {
@@ -163,19 +189,19 @@ export class DecksService {
     }
 
     async comparePod(comparePodDto: ComparePodDto) {
-        const { deckIds } = comparePodDto;
+        const {deckIds} = comparePodDto;
 
         if (!deckIds || deckIds.length !== 4) {
-            throw new Error('A pod must consist of exactly 4 decks.');
+            throw new BadRequestException('A pod must consist of exactly 4 decks.');
         }
 
         const decks = await this.deckRepository.find({
-            where: deckIds.map(deckId => ({ id: deckId }))
+            where: deckIds.map(deckId => ({id: deckId}))
         });
 
-        if (decks.length != 4) {
-            const foundNames = decks.map(d => d.name.toLowerCase());
-            const missing = deckIds.filter(name => !foundNames.includes(name.toLowerCase()));
+        if (decks.length !== 4) {
+            const foundIds = new Set(decks.map(d => d.id));
+            const missing = deckIds.filter(id => !foundIds.has(id));
             throw new NotFoundException(`Could not match all decks. Missing: ${missing.join(', ')}`);
         }
 
@@ -183,10 +209,10 @@ export class DecksService {
             Array.isArray(deck.infiniteCombos) ? deck.infiniteCombos.length : 0;
 
         const getPowerScore = (deck: Deck) =>
-            getComboCount(deck) * 4 +
-            deck.gamechangerCount * 3 +
-            deck.fastManaCount * 2 +
-            deck.tutorCount;
+            getComboCount(deck) * comboWeight +
+            deck.gamechangerCount * gamechangerWeight +
+            deck.fastManaCount * fastmanaWeight +
+            deck.tutorCount * tutorWeight;
 
         const scoredDecks = decks.map(deck => ({
             deck,
@@ -217,49 +243,52 @@ export class DecksService {
 
         if (bracketDisparity >= 3) {
             compatibilityScore -= 40;
-        } else if (bracketDisparity >= 2) {
+        } else if (bracketDisparity === 2) {
             compatibilityScore -= 25;
         } else if (bracketDisparity === 1) {
             compatibilityScore -= 10;
         }
 
-        for (const { deck, powerScore } of scoredDecks) {
-            if (avgScore > 0 && powerScore > avgScore * 2) {
-                warnings.push(`"${deck.name}" is stronger than the pod average.`);
-                compatibilityScore -= 10;
-            } else if (avgScore > 0 && powerScore < avgScore * 0.3 && avgScore >= 4) {
+        for (const {deck, powerScore} of scoredDecks) {
+            if (avgScore > 0 && powerScore > avgScore * highDifferenceMultiplier) {
+                warnings.push(`"${deck.name}" is significantly stronger than the pod average.`);
+                compatibilityScore -= outlierPelanty;
+            } else if (avgScore >= weakOutlierAverage && powerScore < avgScore * lowDifferenceMultiplier) {
                 warnings.push(`"${deck.name}" may be too weak for this pod.`);
-                compatibilityScore -= 5;
+                compatibilityScore -= weakPelanty;
             }
         }
 
-        const decksWithCombos = scoredDecks.filter(s => s.comboCount > 0);
+        const decksWithCombos = scoredDecks.filter(s => s.comboCount > 1);
         if (decksWithCombos.length === 1) {
-            warnings.push(`Only "${decksWithCombos[0].deck.name}" runs combos. Which makes for a big power difference.`);
-            compatibilityScore -= 15;
+            warnings.push(`Only "${decksWithCombos[0].deck.name}" runs multiple combos, creating a notable power gap.`);
+            compatibilityScore -= singleComboDeckPenalty;
         } else if (decksWithCombos.length === 2) {
-            const names = decksWithCombos.map(s => `"${s.deck.name}"`).join(' and ');
-            warnings.push(`${names} run combos while the other two decks don't.`);
-            compatibilityScore -= 8;
+            const nonComboDecks = scoredDecks.filter(s => s.comboCount === 0);
+            if (nonComboDecks.length === 2) {
+                const names = decksWithCombos.map(s => `"${s.deck.name}"`).join(' and ');
+                warnings.push(`${names} run combos while the other two decks don't.`);
+                compatibilityScore -= twoComboDeckPenalty;
+            }
         }
 
         const avgGC = decks.reduce((acc, d) => acc + d.gamechangerCount, 0) / 4;
         for (const deck of decks) {
-            if (deck.gamechangerCount > avgGC + 3) {
+            if (deck.gamechangerCount > avgGC + gamechangerTreshhold) {
                 warnings.push(`"${deck.name}" has significantly more game changers than the rest of the pod.`);
-                compatibilityScore -= 8;
+                compatibilityScore -= gamechangerPenaltiy;
             }
         }
 
         const avgFM = decks.reduce((acc, d) => acc + d.fastManaCount, 0) / 4;
         for (const deck of decks) {
-            if (deck.fastManaCount > avgFM + 2) {
+            if (deck.fastManaCount > avgFM + fastmanaThreshold) {
                 warnings.push(`"${deck.name}" has significantly more fast mana than the rest of the pod.`);
-                compatibilityScore -= 8;
+                compatibilityScore -= fastmanaPenalty;
             }
         }
 
-        compatibilityScore = Math.max(compatibilityScore, 10);
+        compatibilityScore = Math.max(compatibilityScore, minCompatebilityScore);
 
         let status: string;
         let statusMessage: string;
@@ -283,7 +312,7 @@ export class DecksService {
             status,
             statusMessage,
             warnings: warnings.length > 0 ? warnings : ['No significant variance detected — have a good game!'],
-            decks: scoredDecks.map(({ deck, powerScore, comboCount }) => ({
+            decks: scoredDecks.map(({deck, powerScore, comboCount}) => ({
                 id: deck.id,
                 name: deck.name,
                 bracket: deck.bracket,
@@ -293,7 +322,7 @@ export class DecksService {
                 fastMana: deck.fastManaCount || 'none',
                 tutors: deck.tutorCount || 'none',
                 tags: deck.tags,
-                isOutlier: powerScore > avgScore * 1.75 || (deck.bracket === maxBracket && bracketDisparity >= 2),
+                isOutlier: powerScore > avgScore * showOutlier || (deck.bracket === maxBracket && bracketDisparity >= 2),
             }))
         };
     }
@@ -480,26 +509,33 @@ export class DecksService {
             const decklist = [...commanderLines, ...mainLines].join('\n');
             if (!decklist) return [];
 
-            const response = await fetch(
-                `https://backend.commanderspellbook.com/find-my-combos?count=false`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'text/plain',
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), comboTimeout);
+
+            try {
+                const response = await fetch(
+                    `https://backend.commanderspellbook.com/find-my-combos?count=false`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'text/plain',
+                        },
+                        body: decklist,
                     },
-                    body: decklist,
-                },
-            );
+                );
 
-            if (!response.ok) {
-                throw new Error(`Combo microservice returned status ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`Combo microservice returned: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data?.results?.included || [];
+            } finally {
+                clearTimeout(timeout);
             }
-
-            const data = await response.json();
-            return data?.results?.included || [];
         } catch (error) {
-            console.error('Failed to parse microservice combo data array:', error);
+            console.error('Failed to fetch combo data from Commander Spellbook:', error);
             return [];
         }
     }
